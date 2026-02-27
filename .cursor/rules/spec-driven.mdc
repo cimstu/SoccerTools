@@ -1,0 +1,11 @@
+---
+description: Spec-Driven 开发约定；先改 spec 再改实现
+alwaysApply: true
+---
+
+# Spec-Driven 开发
+
+- **规格先行**：新增或修改功能时，先更新 `specs/` 下相关规格（API、领域、行为），再写或改实现代码。
+- **API**：REST 接口以 `specs/api/openapi.yaml` 为准；实现需符合 OpenAPI 定义（路径、方法、请求/响应 schema）。
+- **领域与行为**：业务规则与验收场景见 `specs/domain/` 与 `specs/behavior/`；实现与测试应覆盖这些描述。
+- **冲突时**：以 spec 为准；若发现 spec 不合理，先改 spec 再改代码，保持单一事实来源。

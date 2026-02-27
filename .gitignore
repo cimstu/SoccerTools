@@ -1,0 +1,32 @@
+# Binaries
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Go
+/go/bin/
+*.test
+/coverage.out
+/vendor/
+
+# IDE / Editor
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Project
+specs/tmp/
+internal/crawler/test.html
+
+# Env (if added later)
+.env
+.env.local
+*.local
