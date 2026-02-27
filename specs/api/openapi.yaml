@@ -58,6 +58,34 @@ paths:
         '400':
           description: 参数错误
 
+  # 触发立即爬取一次（供 Web 页「刷新」使用）
+  /replays/refresh:
+    post:
+      summary: 立即爬取一次录像数据
+      operationId: refreshReplays
+      responses:
+        '200':
+          description: 爬取已触发并完成
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                  message:
+                    type: string
+
+  # Web 页面：巴萨录像查询与刷新（GET / 返回 HTML）
+  /:
+    get:
+      summary: 巴萨录像查询页
+      description: 返回 HTML 页面，支持按天数查询录像列表与手动刷新数据。
+      operationId: getReplaysPage
+      responses:
+        '200':
+          description: HTML 页面
+
 components:
   schemas:
     ReplayItem:

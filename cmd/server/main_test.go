@@ -2,24 +2,26 @@ package main
 
 import (
 	"encoding/json"
+	"io/fs"
 	"net/http"
 	"net/http/httptest"
 	"regexp"
+	"strings"
 	"testing"
 
 	"github.com/soccertools/soccertools/internal/model"
 	"github.com/soccertools/soccertools/internal/store"
 )
 
-// 契约测试（Contract Test）：以 specs/api/openapi.yaml 为契约，验证 HTTP API 实现符合规约。
+// 契约测试（Contract Test）：以 specs/api/openapi.yaml 与 specs/behavior/example-match-list.feature 为规约。
 //
-// 规约覆盖：
-//   - GET /health → 200, application/json, { "status": "ok" }
-//   - GET /health 非 GET → 405
-//   - GET /replays → 200, application/json, { "items": ReplayItem[] }, ReplayItem 仅 title/url/date
-//   - GET /replays?days=1..30 → 200；?days=0|31|非法 → 400, application/json
-//   - GET /replays 非 GET → 405
-//   - 领域约束：不透露比分（specs/domain/replay.md）
+// 与 behavior 场景对应：
+//   - 健康检查           → TestHealth_Contract, TestHealth_MethodNotAllowed
+//   - 查询最近 7/14 天   → TestReplays_Contract, TestReplays_DaysParameter
+//   - 参数 days 400      → TestReplays_400_Contract
+//   - 响应不得包含比分   → TestReplays_NoScore
+//   - 立即刷新录像数据   → TestReplaysRefresh_Contract, TestReplaysRefresh_MethodNotAllowed
+//   - Web 页面可查询与刷新 → TestReplaysPage_Contract
 
 func TestHealth_Contract(t *testing.T) {
 	req := httptest.NewRequest(http.MethodGet, "/health", nil)
@@ -160,6 +162,77 @@ func TestReplays_DaysParameter(t *testing.T) {
 				t.Errorf("status = %d, want 400", rr.Code)
 			}
 		})
+	}
+}
+
+// TestReplaysRefresh_Contract 对应 behavior：立即刷新录像数据
+func TestReplaysRefresh_Contract(t *testing.T) {
+	s := store.New()
+	req := httptest.NewRequest(http.MethodPost, "/replays/refresh", nil)
+	rr := httptest.NewRecorder()
+	methodPOST(replaysRefresh(s))(rr, req)
+	if rr.Code != http.StatusOK {
+		t.Errorf("POST /replays/refresh status = %d, want 200", rr.Code)
+	}
+	if ct := rr.Header().Get("Content-Type"); ct != "application/json" {
+		t.Errorf("Content-Type = %q, want application/json", ct)
+	}
+	var body struct {
+		OK      bool   `json:"ok"`
+		Message string `json:"message"`
+	}
+	if err := json.NewDecoder(rr.Body).Decode(&body); err != nil {
+		t.Fatalf("decode: %v", err)
+	}
+	if !body.OK {
+		t.Error("response should have ok: true (规约：响应 JSON 包含 ok 且值为 true)")
+	}
+	// OpenAPI 允许返回 message，行为上刷新后应有提示
+	if body.Message == "" {
+		t.Log("response message is empty (optional in spec)")
+	}
+}
+
+func TestReplaysRefresh_MethodNotAllowed(t *testing.T) {
+	s := store.New()
+	req := httptest.NewRequest(http.MethodGet, "/replays/refresh", nil)
+	rr := httptest.NewRecorder()
+	methodPOST(replaysRefresh(s))(rr, req)
+	if rr.Code != http.StatusMethodNotAllowed {
+		t.Errorf("GET /replays/refresh status = %d, want 405", rr.Code)
+	}
+}
+
+// TestReplaysPage_Contract 对应 behavior：Web 页面可查询与刷新
+func TestReplaysPage_Contract(t *testing.T) {
+	staticRoot, _ := fs.Sub(staticFS, "static")
+	handler := http.FileServer(http.FS(staticRoot))
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	rr := httptest.NewRecorder()
+	handler.ServeHTTP(rr, req)
+	if rr.Code != http.StatusOK {
+		t.Errorf("GET / status = %d, want 200", rr.Code)
+	}
+	ct := rr.Header().Get("Content-Type")
+	if !strings.Contains(ct, "text/html") {
+		t.Errorf("Content-Type = %q, want text/html", ct)
+	}
+	body := rr.Body.String()
+	// 规约：页面包含「巴萨」与「录像」文案
+	if !strings.Contains(body, "巴萨") || !strings.Contains(body, "录像") {
+		t.Error("page should contain 巴萨 and 录像")
+	}
+	// 规约：页面支持选择最近 7/14/30 天并查询
+	if !strings.Contains(body, "7 天") || !strings.Contains(body, "14 天") || !strings.Contains(body, "30 天") {
+		t.Error("page should offer 7/14/30 days options")
+	}
+	// 规约：页面支持点击「刷新数据」触发 POST /replays/refresh
+	if !strings.Contains(body, "刷新数据") {
+		t.Error("page should have 刷新数据 button")
+	}
+	// 确保有调用 /replays 与 /replays/refresh 的端到端能力（页面内脚本）
+	if !strings.Contains(body, "/replays") {
+		t.Error("page should reference /replays API")
 	}
 }
 

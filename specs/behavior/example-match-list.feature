@@ -33,3 +33,17 @@ Feature: 巴塞罗那比赛录像列表
     Then 返回状态 400
     When 用户请求 GET /replays?days=31
     Then 返回状态 400
+
+  Scenario: 立即刷新录像数据
+    When 用户请求 POST /replays/refresh
+    Then 返回状态 200
+    And 响应 JSON 包含 "ok" 且值为 true
+    And 服务端已执行一次爬取并更新数据
+
+  Scenario: Web 页面可查询与刷新
+    When 用户访问 GET /
+    Then 返回状态 200
+    And 响应为 HTML 页面
+    And 页面包含「巴萨」与「录像」文案
+    And 页面支持选择最近 7/14/30 天并查询
+    And 页面支持点击「刷新数据」触发 POST /replays/refresh 后更新列表

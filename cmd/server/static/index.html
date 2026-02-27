@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>巴萨比赛录像 - SoccerTools</title>
+  <style>
+    :root { --bg: #1a1a2e; --card: #16213e; --accent: #e94560; --text: #eee; --muted: #a0a0a0; }
+    * { box-sizing: border-box; }
+    body { font-family: "Segoe UI", system-ui, sans-serif; margin: 0; background: var(--bg); color: var(--text); min-height: 100vh; }
+    .container { max-width: 900px; margin: 0 auto; padding: 1.5rem; }
+    h1 { font-size: 1.5rem; margin: 0 0 1rem; color: var(--text); }
+    .toolbar { display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap; margin-bottom: 1.25rem; }
+    .toolbar label { color: var(--muted); font-size: 0.9rem; }
+    select { padding: 0.5rem 0.75rem; border-radius: 6px; border: 1px solid #333; background: var(--card); color: var(--text); cursor: pointer; }
+    button { padding: 0.5rem 1rem; border-radius: 6px; border: none; cursor: pointer; font-weight: 500; }
+    button.primary { background: var(--accent); color: #fff; }
+    button.primary:hover { filter: brightness(1.1); }
+    button.secondary { background: var(--card); color: var(--text); border: 1px solid #444; }
+    button.secondary:hover { background: #252540; }
+    button:disabled { opacity: 0.6; cursor: not-allowed; }
+    .status { font-size: 0.85rem; color: var(--muted); margin-left: auto; }
+    .status.error { color: var(--accent); }
+    table { width: 100%; border-collapse: collapse; background: var(--card); border-radius: 8px; overflow: hidden; }
+    th, td { padding: 0.75rem 1rem; text-align: left; border-bottom: 1px solid #2a2a4a; }
+    th { background: #0f0f1a; color: var(--muted); font-weight: 600; font-size: 0.8rem; text-transform: uppercase; }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: #1e2a4a; }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .empty { text-align: center; padding: 2rem; color: var(--muted); }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>巴萨比赛录像</h1>
+    <div class="toolbar">
+      <label for="days">最近</label>
+      <select id="days">
+        <option value="7" selected>7 天</option>
+        <option value="14">14 天</option>
+        <option value="30">30 天</option>
+      </select>
+      <button class="primary" id="btnQuery">查询</button>
+      <button class="secondary" id="btnRefresh">刷新数据</button>
+      <span class="status" id="status"></span>
+    </div>
+    <table>
+      <thead>
+        <tr><th>日期</th><th>比赛</th><th>录像</th></tr>
+      </thead>
+      <tbody id="list"></tbody>
+    </table>
+  </div>
+  <script>
+    const listEl = document.getElementById('list');
+    const statusEl = document.getElementById('status');
+    const daysEl = document.getElementById('days');
+    const btnQuery = document.getElementById('btnQuery');
+    const btnRefresh = document.getElementById('btnRefresh');
+
+    function setStatus(msg, isError) {
+      statusEl.textContent = msg;
+      statusEl.classList.toggle('error', !!isError);
+    }
+
+    async function fetchReplays() {
+      const days = daysEl.value;
+      setStatus('加载中…');
+      try {
+        const r = await fetch('/replays?days=' + days);
+        if (!r.ok) throw new Error(r.status === 400 ? '参数错误' : '请求失败');
+        const data = await r.json();
+        render(data.items || []);
+        setStatus('共 ' + (data.items?.length ?? 0) + ' 场');
+      } catch (e) {
+        setStatus(e.message || '加载失败', true);
+        listEl.innerHTML = '<tr><td colspan="3" class="empty">加载失败，请稍后重试</td></tr>';
+      }
+    }
+
+    function render(items) {
+      if (!items.length) {
+        listEl.innerHTML = '<tr><td colspan="3" class="empty">暂无录像，可点击「刷新数据」重新抓取</td></tr>';
+        return;
+      }
+      listEl.innerHTML = items.map(it =>
+        `<tr>
+          <td>${escapeHtml(it.date)}</td>
+          <td>${escapeHtml(it.title)}</td>
+          <td><a href="${escapeAttr(it.url)}" target="_blank" rel="noopener">观看</a></td>
+        </tr>`
+      ).join('');
+    }
+
+    function escapeHtml(s) {
+      const div = document.createElement('div');
+      div.textContent = s;
+      return div.innerHTML;
+    }
+    function escapeAttr(s) {
+      return escapeHtml(s).replace(/"/g, '&quot;');
+    }
+
+    btnQuery.addEventListener('click', fetchReplays);
+    btnRefresh.addEventListener('click', async () => {
+      btnRefresh.disabled = true;
+      setStatus('正在刷新…');
+      try {
+        const r = await fetch('/replays/refresh', { method: 'POST' });
+        if (!r.ok) throw new Error('刷新失败');
+        setStatus('刷新完成');
+        await fetchReplays();
+      } catch (e) {
+        setStatus(e.message || '刷新失败', true);
+      }
+      btnRefresh.disabled = false;
+    });
+    daysEl.addEventListener('change', fetchReplays);
+
+    fetchReplays();
+  </script>
+</body>
+</html>

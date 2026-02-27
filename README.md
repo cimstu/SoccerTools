@@ -11,7 +11,8 @@
 
 ```
 SoccerTools/
-├── cmd/server/          # 服务入口，定时爬取 + HTTP API
+├── cmd/server/          # 服务入口，定时爬取 + HTTP API + Web 页
+│   └── static/          # 前端页面（embed 打包）
 ├── internal/
 │   ├── crawler/         # 直播吧录像页解析（巴萨相关）
 │   ├── model/           # 数据模型
@@ -34,12 +35,21 @@ go run ./cmd/server
 
 默认监听 `http://localhost:3000`，启动后会立即爬取一次，之后每 5 秒定时爬取。
 
+### Web 页面
+
+浏览器打开 **http://localhost:3000** 可进入「巴萨比赛录像」查询页：
+
+- **查询**：选择最近 7 / 14 / 30 天，点击「查询」或切换天数自动加载。
+- **刷新数据**：点击「刷新数据」会立即从直播吧爬取一次并更新列表。
+
 ### API
 
 | 接口 | 方法 | 说明 |
 |------|------|------|
+| `/` | GET | 巴萨录像查询页（HTML） |
 | `/health` | GET | 健康检查，返回 `{"status":"ok"}` |
 | `/replays` | GET | 巴塞罗那比赛录像列表 |
+| `/replays/refresh` | POST | 立即爬取一次，更新数据 |
 
 **查询最近 N 天录像：**
 
