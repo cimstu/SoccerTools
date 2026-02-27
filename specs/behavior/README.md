@@ -10,12 +10,12 @@
 ## 示例（Gherkin）
 
 ```gherkin
-Feature: 比赛结果查询
-  Scenario: 用户按日期查询比赛
-    Given 系统中有 2025-01-01 的比赛数据
-    When 用户请求该日期的比赛列表
-    Then 返回该日期的所有比赛
-    And 每条记录包含主队、客队、比分
+Feature: 比赛录像列表
+  Scenario: 用户按最近 N 天查询录像
+    When 用户请求 GET /replays?days=7
+    Then 返回该时间范围内的录像列表
+    And 每条记录仅包含 title、url、date
+    And 响应中不得包含比赛比分
 ```
 
-实现或自动化测试应覆盖这些场景，保证行为与 spec 一致。
+实现或自动化测试应覆盖这些场景，保证行为与 spec 一致。**领域约束**：不透露比赛比分（见 `specs/domain/replay.md`）。

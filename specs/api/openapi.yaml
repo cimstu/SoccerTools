@@ -27,10 +27,11 @@ paths:
                     type: string
                     example: ok
 
-  # 巴萨比赛录像：查询最近 N 天（默认 7 天）
+  # 巴萨比赛录像：查询最近 N 天（默认 7 天）。规约：不透露比赛比分。
   /replays:
     get:
       summary: 查询巴塞罗那比赛录像（最近 N 天）
+      description: 返回录像列表，仅含标题、链接、日期；不得包含或透露比赛比分。
       operationId: getBarcelonaReplays
       parameters:
         - name: days
@@ -61,15 +62,18 @@ components:
   schemas:
     ReplayItem:
       type: object
+      description: 单条录像信息。规约约束 - 不得包含比赛比分，仅允许 title/url/date。
       required: [title, url, date]
       properties:
         title:
           type: string
-          description: 比赛标题，如 巴塞罗那vsXXX
+          description: 比赛标题（如 巴塞罗那vsXXX），不得包含比分
         url:
           type: string
           format: uri
         date:
           type: string
           format: date
+      # 禁止扩展字段，避免后续误加 score 等
+      additionalProperties: false
   securitySchemes: {}

@@ -2,11 +2,15 @@ package crawler
 
 import (
 	"fmt"
+	"os"
 	"testing"
 )
 
 func TestParseFileBarcelona(t *testing.T) {
-	path := "test.html" // 相对 internal/crawler 目录
+	path := "test.html" // 相对 internal/crawler 目录，可选本地爬取样例
+	if _, err := os.Stat(path); os.IsNotExist(err) {
+		t.Skip("test.html not found (optional fixture for local parse test)")
+	}
 	items, err := ParseFile(path)
 	if err != nil {
 		t.Fatalf("ParseFile: %v", err)
