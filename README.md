@@ -83,6 +83,10 @@ API 契约见 [specs/api/openapi.yaml](specs/api/openapi.yaml)。
 2. **Spec 为唯一事实来源**：实现与测试以 spec 为准。
 3. 详细约定见 [specs/README.md](specs/README.md)。
 
+## 部署（CentOS CVM）
+
+单二进制 + embed 静态资源，可直接在 Linux 上运行。交叉编译、上传、systemd 配置见 **[deploy/README.md](deploy/README.md)**。
+
 ## 开发
 
 ```bash

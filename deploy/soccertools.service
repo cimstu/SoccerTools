@@ -1,0 +1,19 @@
+[Unit]
+Description=SoccerTools - 巴萨比赛录像 API 与 Web 页
+After=network.target
+
+[Service]
+Type=simple
+User=soccertools
+Group=soccertools
+WorkingDirectory=/opt/soccertools
+ExecStart=/opt/soccertools/soccertools
+Restart=always
+RestartSec=5
+
+# 若需监听所有网卡（外网可访问），程序已默认 :3000，无需改
+# 环境变量（可选）
+# Environment=PORT=3000
+
+[Install]
+WantedBy=multi-user.target
